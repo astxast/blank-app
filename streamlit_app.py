@@ -12,9 +12,23 @@ st.set_page_config(
     layout="wide"
 )
 
+# Список доступных моделей
+AVAILABLE_MODELS = {
+    "Mistral Large": "mistral-large-latest",
+    "Pixtral Large": "pixtral-large-latest",
+    "Mistral Moderation": "mistral-moderation-latest",
+    "Ministral 3B": "ministral-3b-latest",
+    "Ministral 8B": "ministral-8b-latest",
+    "Open Mistral Nemo": "open-mistral-nemo",
+    "Mistral Small": "mistral-small-latest",
+    "Codestral": "codestral-latest"
+}
+
 # Инициализация состояния сессии
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = "mistral-large-latest"
 
 def initialize_client():
     """Инициализация клиента MistralAI"""
@@ -60,7 +74,7 @@ def get_file_content(uploaded_file):
 def get_chatbot_response(client, messages):
     """Получение ответа от MistralAI"""
     response = client.chat.complete(
-        model="mistral-medium",
+        model=st.session_state.selected_model,
         messages=messages,
         temperature=0.7,
         max_tokens=1000
@@ -82,6 +96,21 @@ st.title("🤖 MistralAI Chatbot с анализом файлов")
 
 # Инициализация клиента
 client = initialize_client()
+
+# Настройки в боковой панели
+st.sidebar.title("Настройки")
+
+# Выбор модели
+selected_model_name = st.sidebar.selectbox(
+    "Выберите модель",
+    list(AVAILABLE_MODELS.keys()),
+    format_func=lambda x: x,
+    help="Выберите модель Mistral AI для генерации ответов"
+)
+st.session_state.selected_model = AVAILABLE_MODELS[selected_model_name]
+
+# Информация о текущей модели
+st.sidebar.info(f"Выбрана модель: {st.session_state.selected_model}")
 
 # Загрузка файла
 st.sidebar.title("Загрузка файла")
@@ -141,8 +170,7 @@ if st.sidebar.button("Очистить историю"):
     st.session_state.messages = []
     st.experimental_rerun()
 
-# Настройки в боковой панели
-st.sidebar.title("Настройки")
+# Дополнительная информация в боковой панели
 st.sidebar.markdown("""
 ### О приложении
 Этот чат-бот использует API MistralAI для генерации ответов и анализа файлов.
@@ -153,8 +181,9 @@ st.sidebar.markdown("""
 - DOCX документы
 
 ### Инструкции
-1. Загрузите файл через боковую панель (по желанию)
-2. Задайте вопрос по содержимому файла (по желанию)
-3. Нажмите "Анализировать файл" или задайте вопрос в чате
-4. Дождитесь ответа бота
+1. Выберите нужную модель Mistral AI
+2. Загрузите файл через боковую панель (по желанию)
+3. Задайте вопрос по содержимому файла (по желанию)
+4. Нажмите "Анализировать файл" или задайте вопрос в чате
+5. Дождитесь ответа бота
 """)
