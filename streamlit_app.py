@@ -143,7 +143,7 @@ if uploaded_file:
                     "role": "assistant",
                     "content": analysis
                 })
-                st.experimental_rerun()
+                st.rerun()  # Заменили experimental_rerun на rerun
 
 # Отображение истории сообщений
 for message in st.session_state.messages:
@@ -169,7 +169,7 @@ if prompt := st.chat_input("Введите ваше сообщение..."):
 # Кнопка очистки истории
 if st.sidebar.button("Очистить историю"):
     st.session_state.messages = []
-    st.experimental_rerun()
+    st.rerun()  # Заменили experimental_rerun на rerun
 
 # Дополнительная информация в боковой панели
 st.sidebar.markdown("""
