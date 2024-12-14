@@ -1,6 +1,9 @@
 import streamlit as st
 from mistralai import Mistral
 import os
+import PyPDF2
+import io
+import docx
 
 # Настройка страницы
 st.set_page_config(
@@ -25,22 +28,92 @@ def initialize_client():
     
     return Mistral(api_key=api_key)
 
+def read_pdf(file):
+    """Чтение содержимого PDF файла"""
+    pdf_reader = PyPDF2.PdfReader(file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text() + "\n"
+    return text
+
+def read_docx(file):
+    """Чтение содержимого DOCX файла"""
+    doc = docx.Document(file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+def read_text_file(file):
+    """Чтение содержимого текстового файла"""
+    return file.getvalue().decode('utf-8')
+
+def get_file_content(uploaded_file):
+    """Получение содержимого файла в зависимости от его типа"""
+    if uploaded_file.type == "application/pdf":
+        return read_pdf(uploaded_file)
+    elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        return read_docx(uploaded_file)
+    else:  # Предполагаем, что это текстовый файл
+        return read_text_file(uploaded_file)
+
 def get_chatbot_response(client, messages):
     """Получение ответа от MistralAI"""
     response = client.chat.complete(
-        model="mistral-medium",  # или другая доступная модель
+        model="mistral-medium",
         messages=messages,
         temperature=0.7,
         max_tokens=1000
     )
-    
     return response.choices[0].message.content
 
+def analyze_file_content(client, content, question=None):
+    """Анализ содержимого файла"""
+    if question:
+        prompt = f"Проанализируй следующий текст и ответь на вопрос: {question}\n\nТекст:\n{content[:6000]}"
+    else:
+        prompt = f"Проанализируй следующий текст и предоставь краткое содержание основных моментов:\n\n{content[:6000]}"
+    
+    messages = [{"role": "user", "content": prompt}]
+    return get_chatbot_response(client, messages)
+
 # Заголовок приложения
-st.title("🤖 MistralAI Chatbot")
+st.title("🤖 MistralAI Chatbot с анализом файлов")
 
 # Инициализация клиента
 client = initialize_client()
+
+# Загрузка файла
+st.sidebar.title("Загрузка файла")
+uploaded_file = st.sidebar.file_uploader(
+    "Загрузите файл для анализа",
+    type=['txt', 'pdf', 'docx'],
+    help="Поддерживаются файлы форматов TXT, PDF и DOCX"
+)
+
+# Если файл загружен
+if uploaded_file:
+    with st.sidebar:
+        st.write("Файл загружен:", uploaded_file.name)
+        question = st.text_input("Введите вопрос по содержимому файла (необязательно)")
+        if st.button("Анализировать файл"):
+            with st.spinner("Читаю файл..."):
+                content = get_file_content(uploaded_file)
+                
+            with st.spinner("Анализирую содержимое..."):
+                analysis = analyze_file_content(client, content, question)
+                
+                # Добавляем результат анализа в историю сообщений
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": f"Проанализируй файл {uploaded_file.name}" + 
+                              (f" и ответь на вопрос: {question}" if question else "")
+                })
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": analysis
+                })
+                st.experimental_rerun()
 
 # Отображение истории сообщений
 for message in st.session_state.messages:
@@ -72,10 +145,16 @@ if st.sidebar.button("Очистить историю"):
 st.sidebar.title("Настройки")
 st.sidebar.markdown("""
 ### О приложении
-Этот чат-бот использует API MistralAI для генерации ответов.
+Этот чат-бот использует API MistralAI для генерации ответов и анализа файлов.
+
+### Поддерживаемые форматы файлов
+- TXT (текстовые файлы)
+- PDF документы
+- DOCX документы
 
 ### Инструкции
-1. Введите ваш вопрос в поле внизу
-2. Дождитесь ответа бота
-3. Продолжайте диалог
+1. Загрузите файл через боковую панель (по желанию)
+2. Задайте вопрос по содержимому файла (по желанию)
+3. Нажмите "Анализировать файл" или задайте вопрос в чате
+4. Дождитесь ответа бота
 """)
