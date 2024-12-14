@@ -3,7 +3,7 @@ from mistralai import Mistral
 import os
 import PyPDF2
 import io
-import docx
+from docx import Document
 
 # Настройка страницы
 st.set_page_config(
@@ -52,11 +52,12 @@ def read_pdf(file):
 
 def read_docx(file):
     """Чтение содержимого DOCX файла"""
-    doc = docx.Document(file)
-    text = ""
+    doc = Document(file)
+    text = []
     for paragraph in doc.paragraphs:
-        text += paragraph.text + "\n"
-    return text
+        if paragraph.text:
+            text.append(paragraph.text)
+    return '\n'.join(text)
 
 def read_text_file(file):
     """Чтение содержимого текстового файла"""
