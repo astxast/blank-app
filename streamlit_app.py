@@ -1,6 +1,5 @@
-import streamlit as st
-from mistralai.client import MistralClient
-from mistralai.models.chat_completion import ChatMessage
+\import streamlit as st
+from mistralai import Mistral
 import os
 
 # Настройка страницы
@@ -24,23 +23,18 @@ def initialize_client():
         st.error("Пожалуйста, установите MISTRAL_API_KEY в secrets или переменных окружения")
         st.stop()
     
-    return MistralClient(api_key=api_key)
+    return Mistral(api_key=api_key)
 
 def get_chatbot_response(client, messages):
     """Получение ответа от MistralAI"""
-    chat_messages = [
-        ChatMessage(role=msg["role"], content=msg["content"])
-        for msg in messages
-    ]
-    
-    response = client.chat(
-        model="mistral-tiny",  # или другая доступная модель
-        messages=chat_messages,
+    response = client.chat.complete(
+        model="mistral-medium",  # или другая доступная модель
+        messages=messages,
         temperature=0.7,
         max_tokens=1000
     )
     
-    return response.messages[0].content
+    return response.choices[0].message.content
 
 # Заголовок приложения
 st.title("🤖 MistralAI Chatbot")
