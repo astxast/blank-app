@@ -1,4 +1,4 @@
 streamlit
 mistralai
-PyPDF
+PyPDF2
 docx
